@@ -1,6 +1,8 @@
+from __future__ import print_function
 import sys
-import unittest
 import greenlet
+
+from . import TestCase
 
 class SomeError(Exception):
     pass
@@ -25,12 +27,12 @@ class GreenletTracer(object):
         greenlet.settrace(self.oldtrace)
 
 
-class TestGreenletTracing(unittest.TestCase):
+class TestGreenletTracing(TestCase):
     """
     Tests of ``greenlet.settrace()``
     """
 
-    def test_greenlet_tracing(self):
+    def test_a_greenlet_tracing(self):
         main = greenlet.getcurrent()
         def dummy():
             pass
@@ -50,7 +52,7 @@ class TestGreenletTracing(unittest.TestCase):
             ('throw', (g2, main)),
         ])
 
-    def test_exception_disables_tracing(self):
+    def test_b_exception_disables_tracing(self):
         main = greenlet.getcurrent()
         def dummy():
             main.switch()
@@ -63,6 +65,15 @@ class TestGreenletTracing(unittest.TestCase):
         self.assertEqual(actions, [
             ('switch', (main, g)),
         ])
+
+    def test_set_same_tracer_twice(self):
+        # https://github.com/python-greenlet/greenlet/issues/332
+        # Our logic in asserting that the tracefunction should
+        # gain a reference was incorrect if the same tracefunction was set
+        # twice.
+        tracer = GreenletTracer()
+        with tracer:
+            greenlet.settrace(tracer)
 
 
 class PythonTracer(object):
@@ -85,7 +96,7 @@ class PythonTracer(object):
 def tpt_callback():
     return 42
 
-class TestPythonTracing(unittest.TestCase):
+class TestPythonTracing(TestCase):
     """
     Tests of the interaction of ``sys.settrace()``
     with greenlet facilities.
